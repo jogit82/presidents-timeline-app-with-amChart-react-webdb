@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
 import * as am4core from "@amcharts/amcharts4/core";
 import * as am4charts from "@amcharts/amcharts4/charts";
@@ -6,68 +7,53 @@ import * as am4plugins_timeline from "@amcharts/amcharts4/plugins/timeline";
 import * as am4plugins_bullets from "@amcharts/amcharts4/plugins/bullets";
 import am4themes_animated from "@amcharts/amcharts4/themes/animated";
 
-(function () {
-  "use strict";
-  // Set Custom View's ID in .env
-  const customViewID = Number(process.env.VIEW_ID);
-  // Increment to confirm script version on Kintone
-  const scriptVer = "0";
-  console.log(`\nScript version: ${scriptVer}\n\n`);
+am4core.useTheme(am4themes_animated);
 
-  kintone.events.on("app.record.index.show", function (event) {
-    if (event.viewId !== customViewID) {
-      console.log("View ID from APP: " + event.viewId);
-      console.log("VIEW_ID from env: " + customViewID);
-      console.log("Not on the Custom View");
-      return event;
-    }
+// const restEndpoint = "https://randomuser.me/api/";
+const restEndpoint = "http://localhost:5000/getData";
 
-    function App() {
-      // Color HEX code for the political parties
-      const partyColor = {
-        Democratic: "#2502fe",
-        "Democratic-Republican": "#0e7003",
-        Federalist: "#e28665",
-        Republican: "#e0001b",
-        Unaffiliated: "#d5d5d5",
-        Whig: "#ebbd50",
-      };
+const callRestApi = async () => {
+  const response = await fetch(restEndpoint);
+  const jsonResponse = await response.json();
+  console.log(jsonResponse);
 
-      // Peak inside Kintone's data
-      console.log("event.records");
-      console.log(event.records);
+  return jsonResponse;
+};
 
-      // Retrieve & configure the space element below the record list's header
-      const spaceDiv = kintone.app.getHeaderSpaceElement();
-      spaceDiv.style.height = "650px";
-      spaceDiv.style.marginLeft = "25px";
-      spaceDiv.style.marginRight = "25px";
-      spaceDiv.style.border = "solid";
-      spaceDiv.style.borderColor = "#ED7B84";
+function RenderResult() {
+  const chart = useRef(null);
 
-      // Automatically enable all amCharts animations
-      am4core.useTheme(am4themes_animated);
+  // Color HEX code for the political parties
+  const partyColor = {
+    Democratic: "#2502fe",
+    "Democratic-Republican": "#0e7003",
+    Federalist: "#e28665",
+    Republican: "#e0001b",
+    Unaffiliated: "#d5d5d5",
+    Whig: "#ebbd50",
+  };
 
-      // Create chart instance
-      const chart = am4core.create(
-        spaceDiv,
-        am4plugins_timeline.SerpentineChart
-      );
+  const [apiResponse, setApiResponse] = useState("*** now loading ***");
+
+  useEffect(() => {
+    callRestApi().then((result) => {
+      setApiResponse(result);
+      let x = am4core.create("chartdiv", am4plugins_timeline.SerpentineChart);
       // Space between the chart & border
-      chart.paddingTop = 100;
+      x.paddingTop = 100;
       // Number of straight lines of serpentine shape
-      chart.levelCount = 5;
+      x.levelCount = 5;
       // Allow bullets to 'bleed' over the edge
-      chart.maskBullets = false;
+      x.maskBullets = false;
       // Input & Output Date format
-      chart.dateFormatter.inputDateFormat = "yyyy-MM-dd";
-      chart.dateFormatter.dateFormat = "yyyy-MM-dd";
+      x.dateFormatter.inputDateFormat = "yyyy-MM-dd";
+      x.dateFormatter.dateFormat = "yyyy-MM-dd";
       // Font size
-      chart.fontSize = 12;
-      chart.tooltipContainer.fontSize = 12;
+      x.fontSize = 12;
+      x.tooltipContainer.fontSize = 12;
 
-      // TODO: Input Kintone data into the chart
-      chart.data = event.records.map((rec, index) => {
+      x.data = result.records.map((rec, index) => {
+        console.log(rec);
         return {
           // TODO: Text above the PinBullet; President's name
           text: rec.first.value,
@@ -82,15 +68,13 @@ import am4themes_animated from "@amcharts/amcharts4/themes/animated";
           category: "", // Timeline category; leave as empty string
         };
       });
-      console.log("chart.data");
-      console.log(chart.data);
 
       // Create 1 timeline with all the US Presidents
-      const categoryAxis = chart.yAxes.push(new am4charts.CategoryAxis());
+      const categoryAxis = x.yAxes.push(new am4charts.CategoryAxis());
       categoryAxis.dataFields.category = "category";
 
       // Axis using date & time scale
-      const dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+      const dateAxis = x.xAxes.push(new am4charts.DateAxis());
       // Gray, dashed lines for date axis
       dateAxis.renderer.line.strokeDasharray = "1,4";
       dateAxis.renderer.line.strokeOpacity = 1;
@@ -98,9 +82,7 @@ import am4themes_animated from "@amcharts/amcharts4/themes/animated";
       dateAxis.renderer.labels.template.verticalCenter = "middle";
 
       // Series containing the US Presidents and their terms
-      const series = chart.series.push(
-        new am4plugins_timeline.CurveColumnSeries()
-      );
+      const series = x.series.push(new am4plugins_timeline.CurveColumnSeries());
       series.dataFields.openDateX = "start";
       series.dataFields.dateX = "end";
       series.dataFields.categoryY = "category";
@@ -128,32 +110,33 @@ import am4themes_animated from "@amcharts/amcharts4/themes/animated";
       labelBullet.dy = -80; // Raising text above the icon
 
       // Scrollbar used to focus the timeline
-      chart.scrollbarX = new am4core.Scrollbar();
-      chart.scrollbarX.align = "center";
-      chart.scrollbarX.width = am4core.percent(75);
-      chart.scrollbarX.parent = chart.bottomAxesContainer;
+      x.scrollbarX = new am4core.Scrollbar();
+      x.scrollbarX.align = "center";
+      x.scrollbarX.width = am4core.percent(75);
+      x.scrollbarX.parent = chart.bottomAxesContainer;
 
       // Year appearing when hovering over the chart axis
       const cursor = new am4plugins_timeline.CurveCursor();
-      chart.cursor = cursor;
+      x.cursor = cursor;
       dateAxis.tooltipDateFormat = "yyyy-MMM";
       cursor.xAxis = dateAxis;
       cursor.lineY.disabled = true; // Disable Y line highlight
 
       // Optional - Enable export
-      chart.exporting.menu = new am4core.ExportMenu();
+      x.exporting.menu = new am4core.ExportMenu();
       // Remove unneeded Scrollbar & tooltip
-      chart.scrollbarX.exportable = false;
+      x.scrollbarX.exportable = false;
       dateAxis.tooltip.exportable = false;
-    }
 
-    const rootElement = document.getElementById("root");
-    const root = createRoot(rootElement);
-    root.render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
-    return event;
-  });
-})();
+      chart.current = x;
+
+      return () => {
+        x.dispose();
+      };
+    });
+  }, []);
+
+  return <div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>;
+}
+
+ReactDOM.render(<RenderResult />, document.querySelector("#root"));
