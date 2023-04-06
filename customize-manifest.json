@@ -1,12 +1,12 @@
 {
-  "app": "50",
+  "app": "1",
   "scope": "ALL",
   "desktop": {
-      "js": ["dist/KintoneCustomization.js"],
-      "css": []
+    "js": ["dist/KintoneCustomization.js"],
+    "css": []
   },
   "mobile": {
-      "js": [],
-      "css": []
+    "js": [],
+    "css": []
   }
 }
