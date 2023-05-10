@@ -8,7 +8,7 @@ const app = express();
 
 app.use(cors());
 const corsOptions = {
-  origin: "http://localhost:3001",
+  origin: "http://localhost:3000",
 };
 
 // const requestEndpoint = "https://xkcd.com/327/info.0.json";
@@ -38,5 +38,7 @@ app.get("/getData", cors(corsOptions), async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening at https://localhost:${PORT}`);
+  console.log(
+    `US President timeline app listening at https://localhost:${PORT}`
+  );
 });

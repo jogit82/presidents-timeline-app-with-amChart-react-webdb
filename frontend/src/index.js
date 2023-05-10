@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import ReactDOM from "react-dom";
-import { createRoot } from "react-dom/client";
 import * as am4core from "@amcharts/amcharts4/core";
 import * as am4charts from "@amcharts/amcharts4/charts";
 import * as am4plugins_timeline from "@amcharts/amcharts4/plugins/timeline";
@@ -9,7 +8,7 @@ import am4themes_animated from "@amcharts/amcharts4/themes/animated";
 
 am4core.useTheme(am4themes_animated);
 
-// const restEndpoint = "https://randomuser.me/api/";
+// const restEndpoint = "https://randomuser.me/api/"; // for testing without token
 const restEndpoint = "http://localhost:5000/getData";
 
 const callRestApi = async () => {
@@ -22,25 +21,24 @@ const callRestApi = async () => {
 
 function RenderResult() {
   const chart = useRef(null);
-
-  // Color HEX code for the political parties
-  const partyColor = {
-    Democratic: "#2502fe",
-    "Democratic-Republican": "#0e7003",
-    Federalist: "#e28665",
-    Republican: "#e0001b",
-    Unaffiliated: "#d5d5d5",
-    Whig: "#ebbd50",
-  };
-
   const [apiResponse, setApiResponse] = useState("*** now loading ***");
 
   useEffect(() => {
     callRestApi().then((result) => {
+      // Color HEX code for the political parties
+      const partyColor = {
+        Democratic: "#2502fe",
+        "Democratic-Republican": "#0e7003",
+        Federalist: "#e28665",
+        Republican: "#e0001b",
+        Unaffiliated: "#d5d5d5",
+        Whig: "#ebbd50",
+      };
       setApiResponse(result);
       let x = am4core.create("chartdiv", am4plugins_timeline.SerpentineChart);
       // Space between the chart & border
-      x.paddingTop = 100;
+      x.paddingTop = 80;
+      x.paddingBottom = 50;
       // Number of straight lines of serpentine shape
       x.levelCount = 5;
       // Allow bullets to 'bleed' over the edge
@@ -49,14 +47,13 @@ function RenderResult() {
       x.dateFormatter.inputDateFormat = "yyyy-MM-dd";
       x.dateFormatter.dateFormat = "yyyy-MM-dd";
       // Font size
-      x.fontSize = 12;
+      x.fontSize = 13;
       x.tooltipContainer.fontSize = 12;
 
       x.data = result.records.map((rec, index) => {
-        console.log(rec);
         return {
           // TODO: Text above the PinBullet; President's name
-          text: rec.first.value,
+          text: rec.first.value + " " + rec.last.value,
           // TODO: PinBullet's & time period's color; Party color
           color: partyColor[rec.party.value],
           // TODO: Time period's start; Term's start
@@ -76,10 +73,10 @@ function RenderResult() {
       // Axis using date & time scale
       const dateAxis = x.xAxes.push(new am4charts.DateAxis());
       // Gray, dashed lines for date axis
-      dateAxis.renderer.line.strokeDasharray = "1,4";
-      dateAxis.renderer.line.strokeOpacity = 1;
+      dateAxis.renderer.line.strokeDasharray = "0,0";
+      dateAxis.renderer.line.strokeOpacity = 0.5;
       // Place the label in the middle of the axis
-      dateAxis.renderer.labels.template.verticalCenter = "middle";
+      dateAxis.renderer.labels.template.verticalCenter = "top";
 
       // Series containing the US Presidents and their terms
       const series = x.series.push(new am4plugins_timeline.CurveColumnSeries());
@@ -88,7 +85,7 @@ function RenderResult() {
       series.dataFields.categoryY = "category";
       series.baseAxis = categoryAxis;
       // Coloring of the Presidential terms
-      series.columns.template.height = am4core.percent(15);
+      series.columns.template.height = am4core.percent(25);
       series.columns.template.propertyFields.fill = "color";
       series.columns.template.propertyFields.stroke = "color";
       series.columns.template.strokeOpacity = 0;
@@ -118,7 +115,7 @@ function RenderResult() {
       // Year appearing when hovering over the chart axis
       const cursor = new am4plugins_timeline.CurveCursor();
       x.cursor = cursor;
-      dateAxis.tooltipDateFormat = "yyyy-MMM";
+      dateAxis.tooltipDateFormat = "MMM yyyy";
       cursor.xAxis = dateAxis;
       cursor.lineY.disabled = true; // Disable Y line highlight
 
@@ -136,7 +133,12 @@ function RenderResult() {
     });
   }, []);
 
-  return <div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>;
+  return (
+    <div>
+      <h1>US Presidents</h1>
+      <div id="chartdiv"></div>
+    </div>
+  );
 }
 
 ReactDOM.render(<RenderResult />, document.querySelector("#root"));
